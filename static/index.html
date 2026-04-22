@@ -266,11 +266,23 @@
   <main>
     <div class="toolbar">
       <span class="section-title">Devices</span>
-      <div style="display:flex;align-items:center;gap:1rem;">
-        <div class="filter-group">
-          <button class="filter-btn active" data-filter="all">All</button>
-          <button class="filter-btn" data-filter="online">Online</button>
-          <button class="filter-btn" data-filter="offline">Offline</button>
+      <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <span class="section-title">Sort</span>
+          <div class="filter-group">
+            <button class="filter-btn active" data-sort="ip">IP</button>
+            <button class="filter-btn" data-sort="hostname">Hostname</button>
+            <button class="filter-btn" data-sort="status">Status</button>
+            <button class="filter-btn" data-sort="last-seen">Last Seen</button>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <span class="section-title">Filter</span>
+          <div class="filter-group">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="online">Online</button>
+            <button class="filter-btn" data-filter="offline">Offline</button>
+          </div>
         </div>
         <div class="pulse-ring"><span class="pulse-dot"></span> Live</div>
       </div>
@@ -295,11 +307,51 @@
     }
 
     let currentFilter = 'all';
+    let currentSort = 'ip';
+    let rawDevices = [];
     let lastDevices = [];
 
-    document.querySelectorAll('.filter-btn').forEach(btn => {
+    function ipToNum(ip) {
+      return ((ip || '').split('.').reduce((n, o) => (n * 256) + (parseInt(o, 10) || 0), 0)) >>> 0;
+    }
+
+    function sortDevices(devices) {
+      return [...devices].sort((a, b) => {
+        switch (currentSort) {
+          case 'ip':
+            return ipToNum(a.ip) - ipToNum(b.ip);
+          case 'hostname': {
+            const ha = (a.hostname || a.ip).toLowerCase();
+            const hb = (b.hostname || b.ip).toLowerCase();
+            return ha < hb ? -1 : ha > hb ? 1 : 0;
+          }
+          case 'status':
+            if (a.online !== b.online) return a.online ? -1 : 1;
+            return ipToNum(a.ip) - ipToNum(b.ip);
+          case 'last-seen': {
+            const ta = a.last_seen ? new Date(a.last_seen).getTime() : 0;
+            const tb = b.last_seen ? new Date(b.last_seen).getTime() : 0;
+            return tb - ta;
+          }
+          default:
+            return 0;
+        }
+      });
+    }
+
+    document.querySelectorAll('[data-sort]').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('[data-sort]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentSort = btn.dataset.sort;
+        lastDevices = sortDevices(rawDevices);
+        render(lastDevices);
+      });
+    });
+
+    document.querySelectorAll('[data-filter]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentFilter = btn.dataset.filter;
         render(lastDevices);
@@ -345,12 +397,8 @@
 
     const es = new EventSource('/events');
     es.onmessage = e => {
-      lastDevices = Object.values(JSON.parse(e.data)).sort((a, b) => {
-        if (a.online !== b.online) return a.online ? -1 : 1;
-        const ta = a.last_seen ? new Date(a.last_seen).getTime() : 0;
-        const tb = b.last_seen ? new Date(b.last_seen).getTime() : 0;
-        return tb - ta;
-      });
+      rawDevices = Object.values(JSON.parse(e.data));
+      lastDevices = sortDevices(rawDevices);
       render(lastDevices);
     };
   </script>
