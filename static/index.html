@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NetDash</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --accent: #4f7fff;
+      --green: #22c55e;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .logo svg { color: var(--accent); }
+
+    .stats {
+      display: flex;
+      gap: 1.5rem;
+      font-size: 0.875rem;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .stat-label { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-value { font-weight: 600; font-size: 1rem; }
+    .stat-value.online { color: var(--green); }
+    .stat-value.offline { color: var(--red); }
+
+    main {
+      padding: 1.5rem 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+      gap: 1rem;
+    }
+
+    .section-title {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .filter-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .filter-btn {
+      padding: 0.3rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+      transition: border-color 0.15s, transform 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .card.offline {
+      opacity: 0.6;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .device-primary {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .device-primary.is-hostname {
+      font-family: var(--font);
+    }
+
+    .device-primary.is-ip {
+      font-family: 'Courier New', monospace;
+    }
+
+    .device-secondary {
+      font-family: 'Courier New', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.1rem;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .status-dot.online {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+
+    .status-dot.offline {
+      background: var(--red);
+    }
+
+    .services {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.6rem;
+    }
+
+    .service-tag {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.15rem 0.45rem;
+      font-size: 0.72rem;
+      font-family: 'Courier New', monospace;
+      color: var(--accent);
+    }
+
+    .card-footer {
+      margin-top: 0.85rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding-top: 0.6rem;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+    }
+
+    .pulse-ring {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    @media (max-width: 600px) {
+      header { padding: 0.75rem 1rem; }
+      main { padding: 1rem; }
+      .stats { gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+      </svg>
+      NetDash
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">Online</span>
+        <span class="stat-value online" id="count-online">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Offline</span>
+        <span class="stat-value offline" id="count-offline">—</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Total</span>
+        <span class="stat-value" id="count-total">—</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <span class="section-title">Devices</span>
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <div class="filter-group">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="online">Online</button>
+          <button class="filter-btn" data-filter="offline">Offline</button>
+        </div>
+        <div class="pulse-ring"><span class="pulse-dot"></span> Live</div>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <script>
+    function esc(v) {
+      return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function timeAgo(v) {
+      if (!v) return 'never';
+      const d = new Date(v);
+      if (Number.isNaN(d.getTime())) return 'unknown';
+      const sec = Math.floor((Date.now() - d.getTime()) / 1000);
+      if (sec < 60) return `${sec}s ago`;
+      if (sec < 3600) return `${Math.floor(sec/60)}m ago`;
+      if (sec < 86400) return `${Math.floor(sec/3600)}h ago`;
+      return d.toLocaleDateString();
+    }
+
+    let currentFilter = 'all';
+    let lastDevices = [];
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        render(lastDevices);
+      });
+    });
+
+    function render(devices) {
+      const grid = document.getElementById('grid');
+      const filtered = devices.filter(d => {
+        if (currentFilter === 'online') return d.online;
+        if (currentFilter === 'offline') return !d.online;
+        return true;
+      });
+
+      document.getElementById('count-online').textContent = devices.filter(d => d.online).length;
+      document.getElementById('count-offline').textContent = devices.filter(d => !d.online).length;
+      document.getElementById('count-total').textContent = devices.length;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '<div class="empty-state">No devices found</div>';
+        return;
+      }
+
+      grid.innerHTML = filtered.map(x => {
+        const services = Array.isArray(x.services) && x.services.length
+          ? x.services.map(s => `<span class="service-tag">${esc(s.name || 'tcp')}:${esc(String(s.port))}</span>`).join('')
+          : '';
+        return `
+          <div class="card ${x.online ? '' : 'offline'}">
+            <div class="card-header">
+              <div>
+                ${x.hostname
+                  ? `<div class="device-primary is-hostname">${esc(x.hostname)}</div><div class="device-secondary">${esc(x.ip)}</div>`
+                  : `<div class="device-primary is-ip">${esc(x.ip)}</div>`}
+              </div>
+              <span class="status-dot ${x.online ? 'online' : 'offline'}" title="${x.online ? 'Online' : 'Offline'}"></span>
+            </div>
+            ${services ? `<div class="services">${services}</div>` : ''}
+            <div class="card-footer">Last seen ${esc(timeAgo(x.last_seen))}</div>
+          </div>`;
+      }).join('');
+    }
+
+    function load() {
+      fetch('/devices').then(r => r.json()).then(d => {
+        lastDevices = Object.values(d).sort((a, b) => {
+          if (a.online !== b.online) return a.online ? -1 : 1;
+          const ta = a.last_seen ? new Date(a.last_seen).getTime() : 0;
+          const tb = b.last_seen ? new Date(b.last_seen).getTime() : 0;
+          return tb - ta;
+        });
+        render(lastDevices);
+      });
+    }
+
+    setInterval(load, 2000);
+    load();
+  </script>
+</body>
+</html>
