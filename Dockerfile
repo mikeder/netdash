@@ -24,12 +24,18 @@ WORKDIR /app
 RUN apk add --no-cache \
     ca-certificates \
     tzdata \
-    sqlite-libs
+    sqlite-libs \
+    libcap \
+    net-tools
 
 RUN addgroup -S netdash && adduser -S -u 10001 -G netdash netdash
 
 COPY --from=builder /out/netdash /app/netdash
 COPY --from=builder /src/static /app/static
+
+# Grant CAP_NET_RAW so the non-root process can open raw ICMP sockets
+# and ARP packet sockets without running as root.
+RUN setcap cap_net_raw+ep /app/netdash
 
 RUN chown -R netdash:netdash /app
 USER netdash
