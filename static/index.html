@@ -343,20 +343,16 @@
       }).join('');
     }
 
-    function load() {
-      fetch('/devices').then(r => r.json()).then(d => {
-        lastDevices = Object.values(d).sort((a, b) => {
-          if (a.online !== b.online) return a.online ? -1 : 1;
-          const ta = a.last_seen ? new Date(a.last_seen).getTime() : 0;
-          const tb = b.last_seen ? new Date(b.last_seen).getTime() : 0;
-          return tb - ta;
-        });
-        render(lastDevices);
+    const es = new EventSource('/events');
+    es.onmessage = e => {
+      lastDevices = Object.values(JSON.parse(e.data)).sort((a, b) => {
+        if (a.online !== b.online) return a.online ? -1 : 1;
+        const ta = a.last_seen ? new Date(a.last_seen).getTime() : 0;
+        const tb = b.last_seen ? new Date(b.last_seen).getTime() : 0;
+        return tb - ta;
       });
-    }
-
-    setInterval(load, 2000);
-    load();
+      render(lastDevices);
+    };
   </script>
 </body>
 </html>
