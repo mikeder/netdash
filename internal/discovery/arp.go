@@ -3,6 +3,7 @@ package discovery
 import (
 	"bufio"
 	"bytes"
+	"log/slog"
 	"net"
 	"os/exec"
 	"strings"
@@ -25,6 +26,7 @@ func scanARPTable(store *device.Store) {
 	cmd := exec.Command("arp", "-an")
 	out, err := cmd.Output()
 	if err != nil {
+		slog.Warn("arp: failed to run arp -an", "err", err)
 		return
 	}
 

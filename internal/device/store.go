@@ -2,6 +2,7 @@ package device
 
 import (
 	"database/sql"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -42,8 +43,10 @@ func (s *Store) Update(ip string, update func(d *Device)) {
 	update(d)
 
 	if prev != d.Online && s.db != nil {
-		s.db.Exec("INSERT INTO device_uptime(ip,last_change,status) VALUES(?,?,?)",
-			ip, time.Now(), boolToInt(d.Online))
+		if _, err := s.db.Exec("INSERT INTO device_uptime(ip,last_change,status) VALUES(?,?,?)",
+			ip, time.Now(), boolToInt(d.Online)); err != nil {
+			slog.Warn("store: failed to record uptime change", "ip", ip, "err", err)
+		}
 	}
 }
 

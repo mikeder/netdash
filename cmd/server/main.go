@@ -1,8 +1,9 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"netdash/internal/alerts"
 	"netdash/internal/api"
@@ -33,6 +34,9 @@ func main() {
 	mux := http.NewServeMux()
 	api.RegisterRoutes(mux, store, alertMgr)
 
-	log.Println("Running at http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	slog.Info("Running at http://localhost:8080")
+	if err := http.ListenAndServe(":8080", mux); err != nil {
+		slog.Error("server exited", "err", err)
+		os.Exit(1)
+	}
 }

@@ -2,7 +2,7 @@ package alerts
 
 import (
 	"database/sql"
-	"log"
+	"log/slog"
 )
 
 type Manager struct {
@@ -23,7 +23,9 @@ func (a *Manager) Channel() chan string {
 
 func (a *Manager) Run() {
 	for msg := range a.ch {
-		log.Println(msg)
-		a.db.Exec("INSERT INTO events(message) VALUES(?)", msg)
+		slog.Info("alert", "message", msg)
+		if _, err := a.db.Exec("INSERT INTO events(message) VALUES(?)", msg); err != nil {
+			slog.Warn("alerts: failed to persist event", "err", err)
+		}
 	}
 }

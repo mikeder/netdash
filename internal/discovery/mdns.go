@@ -1,6 +1,7 @@
 package discovery
 
 import (
+	"log/slog"
 	"net"
 	"time"
 
@@ -18,6 +19,7 @@ func listenMDNS(store *device.Store) {
 	group := &net.UDPAddr{IP: net.ParseIP("224.0.0.251"), Port: 5353}
 	conn, err := net.ListenMulticastUDP("udp4", nil, group)
 	if err != nil {
+		slog.Warn("mdns: failed to join multicast group", "err", err)
 		return
 	}
 	defer conn.Close()
@@ -55,12 +57,14 @@ func sendMDNSQueries() {
 	target := &net.UDPAddr{IP: net.ParseIP("224.0.0.251"), Port: 5353}
 	conn, err := net.DialUDP("udp4", nil, target)
 	if err != nil {
+		slog.Warn("mdns: failed to dial multicast", "err", err)
 		return
 	}
 	defer conn.Close()
 
 	pkt, err := buildMDNSServicesQuery()
 	if err != nil {
+		slog.Warn("mdns: failed to build services query", "err", err)
 		return
 	}
 
@@ -68,7 +72,9 @@ func sendMDNSQueries() {
 	defer ticker.Stop()
 
 	for {
-		_, _ = conn.Write(pkt)
+		if _, err := conn.Write(pkt); err != nil {
+			slog.Warn("mdns: failed to send query", "err", err)
+		}
 		<-ticker.C
 	}
 }

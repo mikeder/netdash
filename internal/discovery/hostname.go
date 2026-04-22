@@ -1,6 +1,7 @@
 package discovery
 
 import (
+	"log/slog"
 	"net"
 	"strings"
 	"sync"
@@ -46,6 +47,7 @@ func maybeResolveHostname(ip string, store *device.Store) {
 
 		names, err := net.LookupAddr(ip)
 		if err != nil {
+			slog.Warn("hostname: reverse lookup failed", "ip", ip, "err", err)
 			return
 		}
 
