@@ -24,6 +24,7 @@ func main() {
 	store.SetDB(db)
 
 	config.LoadLabels(store, "devices.json")
+	discovery.SetDNSServer(cfg.DNSServer)
 
 	go discovery.StartScanner(cfg.Subnet, cfg.ScanPorts, store)
 	go discovery.StartARPWorker(store)
