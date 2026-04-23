@@ -25,7 +25,7 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata \
     sqlite-libs \
-    util-linux-misc \
+    libcap-utils \
     net-tools
 
 RUN addgroup -S netdash && adduser -S -u 10001 -G netdash netdash
@@ -36,7 +36,8 @@ COPY --from=builder /src/static /app/static
 RUN chown -R netdash:netdash /app
 
 EXPOSE 8080
-# Container starts as root so setpriv can promote net_raw into the ambient
-# set before dropping to uid/gid 10001. This is more reliable than setcap
-# because it does not depend on xattr support in the overlay filesystem.
-ENTRYPOINT ["setpriv", "--inh-caps=+net_raw", "--ambient-caps=+net_raw", "--reuid=10001", "--regid=10001", "--init-groups", "/app/netdash"]
+# capsh (from libcap-utils) raises net_raw into the inheritable+ambient sets
+# before dropping to uid 10001 via --user. It internally uses PR_SET_KEEPCAPS
+# so the capability survives the uid transition. More reliable than setcap
+# because it does not depend on xattr preservation in the overlay filesystem.
+ENTRYPOINT ["capsh", "--caps=cap_net_raw+eip", "--user=netdash", "--addamb=cap_net_raw", "--exec=/app/netdash"]
