@@ -25,16 +25,10 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata \
     sqlite-libs \
-    libcap \
     net-tools
-
-RUN addgroup -S netdash && adduser -S -u 10001 -G netdash netdash
 
 COPY --from=builder /out/netdash /app/netdash
 COPY --from=builder /src/static /app/static
-
-RUN setcap cap_net_raw+ep /app/netdash && chown -R netdash:netdash /app
-USER netdash
 
 EXPOSE 8080
 ENTRYPOINT ["/app/netdash"]
