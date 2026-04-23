@@ -25,7 +25,7 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata \
     sqlite-libs \
-    libcap \
+    util-linux-misc \
     net-tools
 
 RUN addgroup -S netdash && adduser -S -u 10001 -G netdash netdash
@@ -33,12 +33,10 @@ RUN addgroup -S netdash && adduser -S -u 10001 -G netdash netdash
 COPY --from=builder /out/netdash /app/netdash
 COPY --from=builder /src/static /app/static
 
-# Grant CAP_NET_RAW so the non-root process can open raw ICMP sockets
-# and ARP packet sockets without running as root.
-RUN setcap cap_net_raw+ep /app/netdash
-
 RUN chown -R netdash:netdash /app
-USER netdash
 
 EXPOSE 8080
-ENTRYPOINT ["/app/netdash"]
+# Container starts as root so setpriv can promote net_raw into the ambient
+# set before dropping to uid/gid 10001. This is more reliable than setcap
+# because it does not depend on xattr support in the overlay filesystem.
+ENTRYPOINT ["setpriv", "--inh-caps=+net_raw", "--ambient-caps=+net_raw", "--reuid=10001", "--regid=10001", "--init-groups", "/app/netdash"]
