@@ -26,9 +26,11 @@ func StartPingSweep(subnet string, store *device.Store) {
 }
 
 func pingSweep(subnet string, store *device.Store) error {
-	conn, err := icmp.ListenPacket("ip4:icmp", "0.0.0.0")
+	// Try raw socket first; fall back to unprivileged ping socket
+	// (udp4 requires net.ipv4.ping_group_range to include this process's GID).
+	conn, udp, err := openICMPConn()
 	if err != nil {
-		return fmt.Errorf("open ICMP socket (requires root/CAP_NET_RAW): %w", err)
+		return err
 	}
 	defer conn.Close()
 
@@ -52,7 +54,13 @@ func pingSweep(subnet string, store *device.Store) error {
 		if err != nil {
 			continue
 		}
-		if _, err := conn.WriteTo(b, &net.IPAddr{IP: ip}); err != nil {
+		var dst net.Addr
+		if udp {
+			dst = &net.UDPAddr{IP: ip}
+		} else {
+			dst = &net.IPAddr{IP: ip}
+		}
+		if _, err := conn.WriteTo(b, dst); err != nil {
 			slog.Warn("ping: send failed", "ip", ip, "err", err)
 		}
 	}
@@ -69,7 +77,12 @@ func pingSweep(subnet string, store *device.Store) error {
 		if err != nil || msg.Type != ipv4.ICMPTypeEchoReply {
 			continue
 		}
-		ip := peer.(*net.IPAddr).IP.String()
+		var ip string
+		if udp {
+			ip = peer.(*net.UDPAddr).IP.String()
+		} else {
+			ip = peer.(*net.IPAddr).IP.String()
+		}
 		store.Update(ip, func(d *device.Device) {
 			d.Online = true
 			d.LastSeen = now
@@ -78,4 +91,19 @@ func pingSweep(subnet string, store *device.Store) error {
 	}
 
 	return nil
+}
+
+// openICMPConn tries a raw ICMP socket first (needs CAP_NET_RAW), then falls
+// back to the unprivileged ping socket (needs net.ipv4.ping_group_range to
+// include this process's GID, or --sysctl net.ipv4.ping_group_range=0 2147483647).
+// Returns the connection and whether it is a UDP-mode socket.
+func openICMPConn() (*icmp.PacketConn, bool, error) {
+	if conn, err := icmp.ListenPacket("ip4:icmp", "0.0.0.0"); err == nil {
+		return conn, false, nil
+	}
+	conn, err := icmp.ListenPacket("udp4", "0.0.0.0")
+	if err != nil {
+		return nil, false, fmt.Errorf("open ICMP socket (need CAP_NET_RAW or net.ipv4.ping_group_range): %w", err)
+	}
+	return conn, true, nil
 }

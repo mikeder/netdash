@@ -25,7 +25,7 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata \
     sqlite-libs \
-    libcap-utils \
+    libcap \
     net-tools
 
 RUN addgroup -S netdash && adduser -S -u 10001 -G netdash netdash
@@ -33,11 +33,8 @@ RUN addgroup -S netdash && adduser -S -u 10001 -G netdash netdash
 COPY --from=builder /out/netdash /app/netdash
 COPY --from=builder /src/static /app/static
 
-RUN chown -R netdash:netdash /app
+RUN setcap cap_net_raw+ep /app/netdash && chown -R netdash:netdash /app
+USER netdash
 
 EXPOSE 8080
-# capsh (from libcap-utils) raises net_raw into the inheritable+ambient sets
-# before dropping to uid 10001 via --user. It internally uses PR_SET_KEEPCAPS
-# so the capability survives the uid transition. More reliable than setcap
-# because it does not depend on xattr preservation in the overlay filesystem.
-ENTRYPOINT ["capsh", "--caps=cap_net_raw+eip", "--user=netdash", "--addamb=cap_net_raw", "--exec=/app/netdash"]
+ENTRYPOINT ["/app/netdash"]
