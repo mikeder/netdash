@@ -196,6 +196,39 @@
       color: var(--accent);
     }
 
+    .device-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.5rem;
+      align-items: center;
+    }
+
+    .label-tag {
+      background: #1e2a1e;
+      border: 1px solid #2d4a2d;
+      border-radius: 4px;
+      padding: 0.15rem 0.45rem;
+      font-size: 0.7rem;
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .vendor-tag {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.15rem 0.45rem;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .mac-text {
+      font-family: 'Courier New', monospace;
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
     .card-footer {
       margin-top: 0.85rem;
       font-size: 0.72rem;
@@ -282,6 +315,7 @@
             <button class="filter-btn active" data-filter="all">All</button>
             <button class="filter-btn" data-filter="online">Online</button>
             <button class="filter-btn" data-filter="offline">Offline</button>
+            <button class="filter-btn" data-filter="smart-home">Smart Home</button>
           </div>
         </div>
         <div class="pulse-ring"><span class="pulse-dot"></span> Live</div>
@@ -358,11 +392,18 @@
       });
     });
 
+    const smartHomeLabels = new Set([
+      'Smart Plug', 'Smart Switch', 'Smart Power Strip', 'Smart Bulb',
+      'Security Camera', 'Sprinkler Controller', 'Smart Speaker', 'Smart TV',
+      'Nest Device', 'Chromecast', 'Amazon Device',
+    ]);
+
     function render(devices) {
       const grid = document.getElementById('grid');
       const filtered = devices.filter(d => {
         if (currentFilter === 'online') return d.online;
         if (currentFilter === 'offline') return !d.online;
+        if (currentFilter === 'smart-home') return smartHomeLabels.has(d.label);
         return true;
       });
 
@@ -379,6 +420,11 @@
         const services = Array.isArray(x.services) && x.services.length
           ? x.services.map(s => `<span class="service-tag">${esc(s.name || 'tcp')}:${esc(String(s.port))}</span>`).join('')
           : '';
+        const meta = [
+          x.label  ? `<span class="label-tag">${esc(x.label)}</span>` : '',
+          x.vendor ? `<span class="vendor-tag">${esc(x.vendor)}</span>` : '',
+          x.mac    ? `<span class="mac-text">${esc(x.mac)}</span>` : '',
+        ].filter(Boolean).join('');
         return `
           <div class="card ${x.online ? '' : 'offline'}">
             <div class="card-header">
@@ -389,6 +435,7 @@
               </div>
               <span class="status-dot ${x.online ? 'online' : 'offline'}" title="${x.online ? 'Online' : 'Offline'}"></span>
             </div>
+            ${meta ? `<div class="device-meta">${meta}</div>` : ''}
             ${services ? `<div class="services">${services}</div>` : ''}
             <div class="card-footer">Last seen ${esc(timeAgo(x.last_seen))}</div>
           </div>`;

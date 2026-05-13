@@ -10,6 +10,9 @@ type Service struct {
 type Device struct {
 	IP       string    `json:"ip"`
 	Hostname string    `json:"hostname,omitempty"`
+	MAC      string    `json:"mac,omitempty"`
+	Vendor   string    `json:"vendor,omitempty"`
+	Label    string    `json:"label,omitempty"`
 	LastSeen time.Time `json:"last_seen"`
 	Online   bool      `json:"online"`
 	Services []Service `json:"services,omitempty"`

@@ -73,6 +73,9 @@ func maybeResolveHostname(ip string, store *device.Store) {
 
 		store.Update(ip, func(d *device.Device) {
 			d.Hostname = hostname
+			if d.Label == "" {
+				d.Label = InferLabel(hostname, d.Vendor)
+			}
 		})
 	}(ip)
 }

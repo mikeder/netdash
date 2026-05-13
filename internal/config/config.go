@@ -1,6 +1,8 @@
 package config
 
 import (
+	"encoding/json"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -32,7 +34,49 @@ func getEnvOr(key, fallback string) string {
 	return fallback
 }
 
-func LoadLabels(store *device.Store, path string) {}
+// labelEntry is one record in devices.json. Key by "ip" or "mac".
+type labelEntry struct {
+	IP     string `json:"ip"`
+	MAC    string `json:"mac"`
+	Label  string `json:"label"`
+	Vendor string `json:"vendor"`
+}
+
+// LoadLabels reads devices.json and pre-seeds per-device labels/vendor overrides.
+// Entries are matched by IP or MAC address.
+func LoadLabels(store *device.Store, path string) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			slog.Warn("labels: failed to read file", "path", path, "err", err)
+		}
+		return
+	}
+
+	var entries []labelEntry
+	if err := json.Unmarshal(data, &entries); err != nil {
+		slog.Warn("labels: failed to parse file", "path", path, "err", err)
+		return
+	}
+
+	for _, e := range entries {
+		e := e
+		if e.IP != "" {
+			store.Update(e.IP, func(d *device.Device) {
+				if e.Label != "" {
+					d.Label = e.Label
+				}
+				if e.Vendor != "" {
+					d.Vendor = e.Vendor
+				}
+				if e.MAC != "" {
+					d.MAC = e.MAC
+				}
+			})
+		}
+	}
+	slog.Info("labels: loaded", "path", path, "count", len(entries))
+}
 
 func parseScanPorts(raw string, fallback []int) []int {
 	if strings.TrimSpace(raw) == "" {

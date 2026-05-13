@@ -33,7 +33,7 @@ func scanARPTable(store *device.Store) {
 	now := time.Now()
 	scanner := bufio.NewScanner(bytes.NewReader(out))
 	for scanner.Scan() {
-		ip, ok := parseARPLine(scanner.Text())
+		ip, mac, ok := parseARPLine(scanner.Text())
 		if !ok {
 			continue
 		}
@@ -41,26 +41,40 @@ func scanARPTable(store *device.Store) {
 		store.Update(ip, func(d *device.Device) {
 			d.Online = true
 			d.LastSeen = now
+			EnrichDevice(d, mac)
 		})
 		maybeResolveHostname(ip, store)
 	}
 }
 
-func parseARPLine(line string) (string, bool) {
+func parseARPLine(line string) (ip, mac string, ok bool) {
 	start := strings.IndexByte(line, '(')
 	end := strings.IndexByte(line, ')')
 	if start == -1 || end == -1 || end <= start+1 {
-		return "", false
+		return "", "", false
 	}
 
-	ip := strings.TrimSpace(line[start+1 : end])
+	ip = strings.TrimSpace(line[start+1 : end])
 	if net.ParseIP(ip) == nil {
-		return "", false
+		return "", "", false
 	}
 
-	if strings.Contains(strings.ToLower(line), "incomplete") {
-		return "", false
+	lower := strings.ToLower(line)
+	if strings.Contains(lower, "incomplete") {
+		return "", "", false
 	}
 
-	return ip, true
+	// Extract MAC: token after " at " and before " on "
+	if atIdx := strings.Index(line[end:], " at "); atIdx != -1 {
+		rest := line[end+atIdx+4:]
+		if onIdx := strings.Index(rest, " "); onIdx != -1 {
+			mac = strings.TrimSpace(rest[:onIdx])
+		}
+		// Discard broadcast/multicast MACs
+		if mac == "ff:ff:ff:ff:ff:ff" || strings.HasPrefix(mac, "1:") || strings.HasPrefix(mac, "01:") {
+			mac = ""
+		}
+	}
+
+	return ip, mac, true
 }

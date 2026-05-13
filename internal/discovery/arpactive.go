@@ -70,9 +70,11 @@ func activeARPScan(iface *net.Interface, subnet string, store *device.Store) err
 		if net.ParseIP(ip) == nil {
 			continue
 		}
+		mac := pkt.SenderHardwareAddr.String()
 		store.Update(ip, func(d *device.Device) {
 			d.Online = true
 			d.LastSeen = now
+			EnrichDevice(d, mac)
 		})
 		maybeResolveHostname(ip, store)
 	}

@@ -1,0 +1,11 @@
+[
+  {"ip": "192.168.1.219", "label": "Smart Plug", "vendor": "Amazon"},
+  {"ip": "192.168.1.246", "label": "Smart Plug", "vendor": "Amazon"},
+  {"ip": "192.168.1.252", "label": "Smart Plug", "vendor": "Amazon"},
+  {"ip": "192.168.1.151", "label": "Smart Plug", "vendor": "Amazon"},
+  {"ip": "192.168.1.206", "label": "Smart Plug", "vendor": "TP-Link"},
+  {"ip": "192.168.1.245", "label": "Security Camera", "vendor": "Ring"},
+  {"ip": "192.168.1.152", "label": "Sprinkler Controller", "vendor": "Rachio"},
+  {"ip": "192.168.1.250", "label": "Access Point", "vendor": "Ubiquiti"},
+  {"ip": "192.168.1.225", "label": "Access Point", "vendor": "Ubiquiti"}
+]
