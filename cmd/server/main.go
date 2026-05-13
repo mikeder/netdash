@@ -28,7 +28,7 @@ func main() {
 
 	go discovery.StartScanner(cfg.Subnet, cfg.ScanPorts, store)
 	go discovery.StartARPWorker(store)
-	go discovery.StartActiveARPScanner(cfg.Subnet, store)
+	go discovery.StartActiveARPScanner(cfg.Subnet, cfg.Interface, store)
 	go discovery.StartPingSweep(cfg.Subnet, store)
 	go discovery.StartMDNSWorker(store)
 	go discovery.StartSSDPWorker(store)

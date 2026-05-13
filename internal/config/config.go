@@ -10,6 +10,7 @@ import (
 
 type Config struct {
 	Subnet    string
+	Interface string
 	ScanPorts []int
 	DNSServer string
 }
@@ -18,6 +19,7 @@ func Load() Config {
 	subnet := getEnvOr("NETDASH_SUBNET", "192.168.1")
 	return Config{
 		Subnet:    subnet,
+		Interface: os.Getenv("NETDASH_INTERFACE"),
 		ScanPorts: parseScanPorts(os.Getenv("NETDASH_SCAN_PORTS"), []int{22, 53, 80, 110, 139, 143, 443, 445, 587, 993, 995, 3306, 3389, 5432, 8080}),
 		DNSServer: getEnvOr("NETDASH_DNS", subnet+".1"),
 	}

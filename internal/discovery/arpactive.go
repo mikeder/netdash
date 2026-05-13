@@ -12,8 +12,8 @@ import (
 	"netdash/internal/device"
 )
 
-func StartActiveARPScanner(subnet string, store *device.Store) {
-	iface, err := subnetInterface(subnet)
+func StartActiveARPScanner(subnet, ifaceName string, store *device.Store) {
+	iface, err := subnetInterface(subnet, ifaceName)
 	if err != nil {
 		slog.Warn("arp-scan: no interface found for subnet", "subnet", subnet, "err", err)
 		return
@@ -80,7 +80,15 @@ func activeARPScan(iface *net.Interface, subnet string, store *device.Store) err
 	return nil
 }
 
-func subnetInterface(subnet string) (*net.Interface, error) {
+func subnetInterface(subnet, ifaceName string) (*net.Interface, error) {
+	if ifaceName != "" {
+		iface, err := net.InterfaceByName(ifaceName)
+		if err != nil {
+			return nil, fmt.Errorf("interface %q: %w", ifaceName, err)
+		}
+		return iface, nil
+	}
+
 	_, network, err := net.ParseCIDR(subnet + ".0/24")
 	if err != nil {
 		return nil, fmt.Errorf("parse subnet: %w", err)
